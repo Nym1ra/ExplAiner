@@ -3,11 +3,11 @@ import logging
 import json
 import httpx
 import base64
-from fastapi import FastAPI, HTTPException, File, UploadFile, Form, Depends, Cookie, Request   # ✅ добавил Request
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form, Depends, Cookie, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse, StreamingResponse, HTMLResponse     # ✅ добавил HTMLResponse
+from fastapi.responses import JSONResponse, FileResponse, StreamingResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates                                               # ✅ добавил Jinja2Templates
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
@@ -30,40 +30,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Статические файлы
+# Подключение статических файлов (если нужны картинки, css, js)
 app.mount("/templates", StaticFiles(directory="templates"), name="templates")
 
-# ✅ Подключение шаблонов (ставим сразу после статических файлов)
+# Подключение шаблонов (HTML)
 templates = Jinja2Templates(directory="templates")
 
-# ✅ Роут для фронта (открывает new.html)
+# 🔹 Главная страница (рендерит HTML)
 @app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
+async def home(request: Request):
     return templates.TemplateResponse("new.html", {"request": request})
 
-# ✅ Роут для health-check Render
+# 🔹 Health-check (Render будет проверять этот URL)
 @app.get("/status")
 async def status():
-    return {"status": "ok", "service": "explAiner API"}
-
-
-# Файл для сохранения истории чата (для обратной совместимости)
-CHAT_HISTORY_FILE = "chat_history.json"
-
-@app.get("/")
-async def root():
     return {"status": "ok", "service": "explAiner AI API"}
 
-
+# 🔹 Альтернативные роуты для прямого доступа к HTML
 @app.get("/app")
 async def serve_app():
-    """Редирект на основное приложение"""
     return FileResponse("templates/new.html")
-
 
 @app.get("/ui")
 async def serve_ui():
-    """Альтернативный URL для приложения"""
     return FileResponse("templates/new.html")
 
 
