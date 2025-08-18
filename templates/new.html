@@ -2452,20 +2452,45 @@
 
     // Voice input (SpeechRecognition fallback)
     async function toggleVoice() {
-      if ('webkitSpeechRecognition' in window) {
-        const rec = new webkitSpeechRecognition();
-        rec.lang = 'ru-RU';
-        rec.interimResults = false;
-        rec.onresult = (e) => {
-          const t = Array.from(e.results).map(r => r[0].transcript).join(' ');
-          $('#chatInput').value = t;
-          toast('Распознано голосом', 'success');
-        };
-        rec.onerror = ()=>toast('Ошибка распознавания', 'error');
-        rec.start();
-        toast('Говорите...', 'info');
-      } else {
-        toast('SpeechRecognition недоступен. Используйте микрофон + /api/transcribe (Whisper) на бэкенде.', 'error');
+      try {
+        if ('webkitSpeechRecognition' in window) {
+          const rec = new webkitSpeechRecognition();
+          rec.lang = 'ru-RU';
+          rec.interimResults = false;
+          rec.onresult = (e) => {
+            const t = Array.from(e.results).map(r => r[0].transcript).join(' ');
+            $('#chatInput').value = t;
+            toast('Распознано голосом', 'success');
+          };
+          rec.onerror = (e) => {
+            console.error('Speech recognition error:', e);
+            toast('Ошибка распознавания: ' + (e.error || 'unknown'), 'error');
+          };
+          rec.start();
+          toast('Говорите...', 'info');
+        } else if ('SpeechRecognition' in window) {
+          // Стандартный API (Firefox и другие)
+          const rec = new SpeechRecognition();
+          rec.lang = 'ru-RU';
+          rec.interimResults = false;
+          rec.onresult = (e) => {
+            const t = Array.from(e.results).map(r => r[0].transcript).join(' ');
+            $('#chatInput').value = t;
+            toast('Распознано голосом', 'success');
+          };
+          rec.onerror = (e) => {
+            console.error('Speech recognition error:', e);
+            toast('Ошибка распознавания: ' + (e.error || 'unknown'), 'error');
+          };
+          rec.start();
+          toast('Говорите...', 'info');
+        } else {
+          toast('SpeechRecognition недоступен. Проверьте разрешения микрофона в браузере.', 'error');
+          console.error('SpeechRecognition API не поддерживается');
+        }
+      } catch (err) {
+        console.error('Error initializing speech recognition:', err);
+        toast('Ошибка инициализации распознавания речи: ' + err.message, 'error');
       }
     }
 
@@ -3037,8 +3062,9 @@
     async function genFlow() {
       const q = ($('#whatIfInput').value || '').trim();
       
-      // Показываем индикатор загрузки
+      // Показываем индикатор загрузки и делаем видимым контейнер
       const wrap = $('#flowWrap');
+      wrap.classList.remove('hidden');
       wrap.innerHTML = '<div class="p-3 rounded bg-gray-50 text-center">Генерация диаграммы...</div>';
       
       try {
@@ -3061,11 +3087,17 @@
             wrap.appendChild(el);
             
             // Рендерим диаграмму
-            if (window.mermaid) {
-            await window.mermaid.run({ nodes:[el] });
-        } else {
-          el.textContent = "Mermaid library not loaded. Unable to render diagram.";
-        }
+            if (window.mermaid && typeof window.mermaid.run === 'function') {
+              try {
+                await window.mermaid.run({ nodes:[el] });
+              } catch (mermaidErr) {
+                console.error('Mermaid rendering error:', mermaidErr);
+                el.textContent = "Ошибка рендеринга диаграммы: " + mermaidErr.message;
+              }
+            } else {
+              console.error('Mermaid library not properly loaded');
+              el.textContent = "Библиотека Mermaid не загружена. Невозможно отрендерить диаграмму.";
+            }
             
             // Добавляем пояснение
             const explanationDiv = document.createElement('div');
@@ -3096,10 +3128,16 @@ D --> G[Судебная перспектива]`;
         el.textContent = diagram;
         wrap.innerHTML = '';
         wrap.appendChild(el);
-        if (window.mermaid) {
-        await window.mermaid.run({ nodes:[el] });
+        if (window.mermaid && typeof window.mermaid.run === 'function') {
+          try {
+            await window.mermaid.run({ nodes:[el] });
+          } catch (mermaidErr) {
+            console.error('Mermaid rendering error:', mermaidErr);
+            el.textContent = "Ошибка рендеринга диаграммы: " + mermaidErr.message;
+          }
         } else {
-          el.textContent = "Mermaid library not loaded. Unable to render diagram.";
+          console.error('Mermaid library not properly loaded');
+          el.textContent = "Библиотека Mermaid не загружена. Невозможно отрендерить диаграмму.";
         }
         
         // Добавляем локальное пояснение
