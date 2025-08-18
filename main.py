@@ -830,6 +830,31 @@ async def generate_whatif(request: WhatIfRequest):
                 "diagram": "",
                 "explanation": "Пожалуйста, укажите вопрос для анализа"
             })
+        
+        # Проверяем наличие контекста документа
+        if not request.context or request.context.strip() == "":
+            return JSONResponse(content={
+                "diagram": """flowchart TD
+                A["What-If Симулятор"] --> B{{"Требуется документ"}}
+                B --> C["Загрузите документ"]
+                C --> D["Для использования What-If симулятора"]
+                D --> E["сначала загрузите документ для анализа"]
+                """,
+                "explanation": "Для использования What-If симулятора необходимо сначала загрузить документ. Пожалуйста, загрузите документ через панель загрузки файлов."
+            })
+        
+        # Проверка на наличие API ключа
+        if not GROQ_API_KEY:
+            # Заглушка для what-if симулятора
+            return JSONResponse(content={
+                "diagram": """flowchart TD
+                A["What-If Симулятор (демо-режим)"] --> B{{"Для полной версии требуется API ключ"}}
+                B --> C["Базовая диаграмма"]
+                C --> D["Для активации полной версии"]
+                D --> E["Укажите GROQ_API_KEY в переменных окружения"]
+                """,
+                "explanation": "Это демонстрационная версия What-If симулятора. Для доступа к полной функциональности необходимо указать GROQ_API_KEY в переменных окружения."
+            })
             
         question = request.question
         context = request.context or ""
